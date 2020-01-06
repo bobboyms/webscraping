@@ -1,6 +1,41 @@
 # -*- coding: utf-8 -*-
 import scrapy
+from pymongo import MongoClient
 
+client = MongoClient('mongodb://bobboyms:cpqd118@ds125381.mlab.com:25381/bolsa?retryWrites=false')
+db = client.bolsa
+
+def trata_string(valor):
+
+    if valor == None:
+        return ""
+    else:
+        return valor.strip().replace("-","0")
+
+def transforma_para_numero(valor):
+
+    valor = valor.replace("%","").replace(",",".")
+    return transforma_para_numero_grande(valor)
+
+def transforma_para_numero_grande(dado):
+    
+    if (dado == " - " or dado == "-" or dado == "."):
+        return 0
+
+    slices = dado.split(".")
+    tamanho = len(slices)
+
+    valor = ""
+    for slice in slices[:tamanho -1]:
+        valor += slice
+
+    for slice in slices[tamanho -1:]:
+        valor = valor + "." + slice
+
+    if valor == ".":
+        return 0
+    
+    return float(valor)
 
 class FundamentusSpider(scrapy.Spider):
     name = 'fundamentus'
@@ -20,9 +55,11 @@ class FundamentusSpider(scrapy.Spider):
 
             data = {
                 'codigo':codigo,
-                'nomeEmpresa':nome_empresa,
-                'razaoSocial':razao_social
+                'nome_empresa':nome_empresa,
+                'razao_social':razao_social
             }
+
+            db.empresa.insert_one(data)
 
             yield scrapy.Request(
                 url=link,
@@ -33,72 +70,115 @@ class FundamentusSpider(scrapy.Spider):
         self.log("=====================")
         # trs = response.xpath('//table[@class="w728"]//tbody/tr') #.extract_first()
 
-        tables = response.xpath('/html/body/div[1]/div[2]/table')
+        dados = {}
 
+        tables = response.xpath('/html/body/div[1]/div[2]/table')
+        
         indice_table = 1
+        contacao = 0
+        lpa = 0
         for table in tables:
-            print(table.xpath('.//tr[2]/td[2]/span/text()').extract_first())
 
             if (indice_table == 1):
-                empresa = {
-                    'codigo':table.xpath('.//tr[1]/td[2]/span/text()').extract_first(),
-                    'tipo':table.xpath('.//tr[2]/td[2]/span/text()').extract_first(),
-                    'empresa':table.xpath('.//tr[3]/td[2]/span/text()').extract_first(),
-                    'setor':table.xpath('.//tr[4]/td[2]/span/a/text()').extract_first(),
-                    'subSetor':table.xpath('.//tr[5]/td[2]/span/a/text()').extract_first()
+
+                contacao = transforma_para_numero(trata_string(table.xpath('.//tr[1]/td[4]/span/text()').extract_first())),
+
+                dados["empresa"] = {
+                    'codigo':trata_string(table.xpath('.//tr[1]/td[2]/span/text()').extract_first()),
+                    'cotacao': contacao,
+                    'tipo':trata_string(table.xpath('.//tr[2]/td[2]/span/text()').extract_first()),
+                    'empresa':trata_string(table.xpath('.//tr[3]/td[2]/span/text()').extract_first()),
+                    'setor':trata_string(table.xpath('.//tr[4]/td[2]/span/a/text()').extract_first()),
+                    'subSetor':trata_string(table.xpath('.//tr[5]/td[2]/span/a/text()').extract_first())
                 }
 
-                # self.log(data)
 
             elif (indice_table == 2):
-                data = {
-                    'Valor_de_mercado':table.xpath('.//tr[1]/td[2]/span/text()').extract_first(),
-                    'ult_balanco_processado':table.xpath('.//tr[1]/td[4]/span/text()').extract_first(),
-                    'Valor_da_firma':table.xpath('.//tr[2]/td[2]/span/text()').extract_first(),
-                    'numero_acoes':table.xpath('.//tr[2]/td[4]/span/text()').extract_first()
+                dados["mercado"] = {
+                    'Valor_de_mercado':transforma_para_numero(
+                        trata_string(table.xpath('.//tr[1]/td[2]/span/text()').extract_first())),
+                    'ult_balanco_processado':trata_string(table.xpath('.//tr[1]/td[4]/span/text()').extract_first()),
+                    'Valor_da_firma':transforma_para_numero(
+                        trata_string(table.xpath('.//tr[2]/td[2]/span/text()').extract_first())),
+                    'numero_acoes':transforma_para_numero(
+                        trata_string(table.xpath('.//tr[2]/td[4]/span/text()').extract_first()))
                 }
 
-                # self.log(data)
             elif (indice_table == 3):
-                data = {
-                    'p_l':table.xpath('.//tr[2]/td[4]/span/text()').extract_first().strip(),
-                    'lpa':table.xpath('.//tr[2]/td[6]/span/text()').extract_first().strip(),
 
-                    'p_vp':table.xpath('.//tr[3]/td[4]/span/text()').extract_first().strip(),
-                    'vpa':table.xpath('.//tr[3]/td[6]/span/text()').extract_first().strip(),
+                lpa = transforma_para_numero(trata_string(table.xpath('.//tr[2]/td[6]/span/text()').extract_first())),
 
-                    'P_EBIT':table.xpath('.//tr[4]/td[4]/span/text()').extract_first().strip(),
-                    'margem_bruta':table.xpath('.//tr[4]/td[6]/span/text()').extract_first().strip(),
+                dados["indicadores_fundamentalistas"] = {
+                    'p_l':transforma_para_numero(trata_string(table.xpath('.//tr[2]/td[4]/span/text()').extract_first())),
+                    'lpa':lpa,
 
-                    'psr':table.xpath('.//tr[5]/td[4]/span/text()').extract_first().strip(),
-                    'margem_ebit':table.xpath('.//tr[5]/td[6]/span/text()').extract_first().strip(),
+                    'p_vp':transforma_para_numero(trata_string(table.xpath('.//tr[3]/td[4]/span/text()').extract_first())),
+                    'vpa':transforma_para_numero(trata_string(table.xpath('.//tr[3]/td[6]/span/text()').extract_first())),
 
-                    'p_ativos':table.xpath('.//tr[6]/td[4]/span/text()').extract_first().strip(),
-                    'margem_liquida':table.xpath('.//tr[6]/td[6]/span/text()').extract_first().strip(),
+                    'P_EBIT':transforma_para_numero(trata_string(table.xpath('.//tr[4]/td[4]/span/text()').extract_first())),
+                    'margem_bruta':transforma_para_numero(trata_string(table.xpath('.//tr[4]/td[6]/span/text()').extract_first().strip())),
 
-                    'P/Cap. Giro':table.xpath('.//tr[7]/td[4]/span/text()').extract_first().strip(),
-                    'EBIT / Ativo':table.xpath('.//tr[7]/td[6]/span/text()').extract_first().strip(),
+                    'psr':transforma_para_numero(trata_string(table.xpath('.//tr[5]/td[4]/span/text()').extract_first())),
+                    'margem_ebit':transforma_para_numero(trata_string(table.xpath('.//tr[5]/td[6]/span/text()').extract_first())),
 
-                    'P/Ativ Circ Liq':table.xpath('.//tr[8]/td[4]/span/text()').extract_first().strip(),
-                    'ROIC':table.xpath('.//tr[8]/td[6]/span/text()').extract_first().strip(),
+                    'p_ativos':transforma_para_numero(trata_string(table.xpath('.//tr[6]/td[4]/span/text()').extract_first())),
+                    'margem_liquida':transforma_para_numero(trata_string(table.xpath('.//tr[6]/td[6]/span/text()').extract_first())),
 
-                    'Div. Yield':table.xpath('.//tr[9]/td[4]/span/text()').extract_first().strip(),
-                    'ROE':table.xpath('.//tr[9]/td[6]/span/text()').extract_first().strip(),
+                    'p_div_cap_giro':transforma_para_numero(trata_string(table.xpath('.//tr[7]/td[4]/span/text()').extract_first())),
+                    'ebit_div_ativo':transforma_para_numero(trata_string(table.xpath('.//tr[7]/td[6]/span/text()').extract_first())),
 
-                    'EV / EBITDA':table.xpath('.//tr[10]/td[4]/span/text()').extract_first().strip(),
-                    'Liquidez Corr':table.xpath('.//tr[10]/td[6]/span/text()').extract_first().strip(),
+                    'p_div_ativ_circ_liq':transforma_para_numero(trata_string(table.xpath('.//tr[8]/td[4]/span/text()').extract_first())),
+                    'roic':transforma_para_numero(trata_string(table.xpath('.//tr[8]/td[6]/span/text()').extract_first())),
 
-                    'EV / EBIT':table.xpath('.//tr[11]/td[4]/span/text()').extract_first().strip(),
-                    'Div Br/ Patrim':table.xpath('.//tr[11]/td[6]/span/text()').extract_first().strip(),
+                    'div_yield':transforma_para_numero(trata_string(table.xpath('.//tr[9]/td[4]/span/text()').extract_first())),
+                    'roe':transforma_para_numero(trata_string(table.xpath('.//tr[9]/td[6]/span/text()').extract_first())),
 
-                    'Cres. Rec (5a)':table.xpath('.//tr[12]/td[4]/span/text()').extract_first().strip(),
-                    'Giro Ativos':table.xpath('.//tr[12]/td[6]/span/text()').extract_first().strip()
+                    'ev_div_ebitda':transforma_para_numero(trata_string(table.xpath('.//tr[10]/td[4]/span/text()').extract_first())),
+                    'liquidez_corr':transforma_para_numero(trata_string(table.xpath('.//tr[10]/td[6]/span/text()').extract_first())),
 
-                    
+                    'ev_div_ebit':transforma_para_numero(trata_string(table.xpath('.//tr[11]/td[4]/span/text()').extract_first())),
+                    'div_br_div_patrim':transforma_para_numero(trata_string(table.xpath('.//tr[11]/td[6]/span/text()').extract_first())),
+
+                    'cres_rec_5a':transforma_para_numero(trata_string(table.xpath('.//tr[12]/td[4]/span/text()').extract_first())),
+                    'giro_ativos':transforma_para_numero(trata_string(table.xpath('.//tr[12]/td[6]/span/text()').extract_first()))
                 }
+                
+            elif (indice_table == 4):
+                dados["balanco_patrimonial"] = {
+                    'ativo':transforma_para_numero(trata_string(table.xpath('.//tr[2]/td[2]/span/text()').extract_first())),
+                    'divida_bruta':transforma_para_numero(trata_string(table.xpath('.//tr[2]/td[4]/span/text()').extract_first())),
 
-                self.log(data)
+                    'disponibilidades':transforma_para_numero(trata_string(table.xpath('.//tr[3]/td[2]/span/text()').extract_first())),
+                    'divida_liquida':transforma_para_numero(trata_string(table.xpath('.//tr[3]/td[4]/span/text()').extract_first())),
 
-
+                    'ativo_circulante':transforma_para_numero(trata_string(table.xpath('.//tr[4]/td[2]/span/text()').extract_first())),
+                    'patrimonio_liquido':transforma_para_numero(trata_string(table.xpath('.//tr[4]/td[4]/span/text()').extract_first()))                
+                }
+                
+            elif (indice_table == 5):
+                dados["demonstrativos_de_resultados"] = {
+                    'Receita Líquida':transforma_para_numero(trata_string(table.xpath('.//tr[3]/td[2]/span/text()').extract_first())),
+                    'ebit':transforma_para_numero(trata_string(table.xpath('.//tr[4]/td[2]/span/text()').extract_first())),
+                    'lucro_liquido':transforma_para_numero(trata_string(table.xpath('.//tr[4]/td[2]/span/text()').extract_first())) 
+                }
+                
             indice_table += 1
-            
+        
+
+        print(contacao, " ", lpa, ' ',  len(lpa), ' ', len(contacao))
+
+        contacao = float('.'.join(str(ele) for ele in contacao))
+        lpa = float('.'.join(str(ele) for ele in lpa))
+
+        print(contacao, " ", lpa)
+        
+        if lpa == 0:
+            dados["indicadores_fundamentalistas"]["cotacao_lpa"] = 0
+        else:
+            dados["indicadores_fundamentalistas"]["cotacao_lpa"] = (contacao / lpa)
+
+        
+
+        
+
+        db.empresa_detalhe.insert_one(dados)
