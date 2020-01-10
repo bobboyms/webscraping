@@ -81,7 +81,7 @@ class FundamentusSpider(scrapy.Spider):
 
             if (indice_table == 1):
 
-                contacao = transforma_para_numero(trata_string(table.xpath('.//tr[1]/td[4]/span/text()').extract_first())),
+                contacao = transforma_para_numero(trata_string(table.xpath('.//tr[1]/td[4]/span/text()').extract_first()))
 
                 dados["empresa"] = {
                     'codigo':trata_string(table.xpath('.//tr[1]/td[2]/span/text()').extract_first()),
@@ -98,6 +98,7 @@ class FundamentusSpider(scrapy.Spider):
                     'Valor_de_mercado':transforma_para_numero(
                         trata_string(table.xpath('.//tr[1]/td[2]/span/text()').extract_first())),
                     'ult_balanco_processado':trata_string(table.xpath('.//tr[1]/td[4]/span/text()').extract_first()),
+                    'ano_ult_balanco_processado':trata_string(table.xpath('.//tr[1]/td[4]/span/text()').extract_first()).split("/")[2:][0],
                     'Valor_da_firma':transforma_para_numero(
                         trata_string(table.xpath('.//tr[2]/td[2]/span/text()').extract_first())),
                     'numero_acoes':transforma_para_numero(
@@ -106,11 +107,9 @@ class FundamentusSpider(scrapy.Spider):
 
             elif (indice_table == 3):
 
-                lpa = transforma_para_numero(trata_string(table.xpath('.//tr[2]/td[6]/span/text()').extract_first())),
-
                 dados["indicadores_fundamentalistas"] = {
                     'p_l':transforma_para_numero(trata_string(table.xpath('.//tr[2]/td[4]/span/text()').extract_first())),
-                    'lpa':lpa,
+                    'lpa':transforma_para_numero(trata_string(table.xpath('.//tr[2]/td[6]/span/text()').extract_first())),
 
                     'p_vp':transforma_para_numero(trata_string(table.xpath('.//tr[3]/td[4]/span/text()').extract_first())),
                     'vpa':transforma_para_numero(trata_string(table.xpath('.//tr[3]/td[6]/span/text()').extract_first())),
@@ -163,22 +162,6 @@ class FundamentusSpider(scrapy.Spider):
                 }
                 
             indice_table += 1
-        
-
-        print(contacao, " ", lpa, ' ',  len(lpa), ' ', len(contacao))
-
-        contacao = float('.'.join(str(ele) for ele in contacao))
-        lpa = float('.'.join(str(ele) for ele in lpa))
-
-        print(contacao, " ", lpa)
-        
-        if lpa == 0:
-            dados["indicadores_fundamentalistas"]["cotacao_lpa"] = 0
-        else:
-            dados["indicadores_fundamentalistas"]["cotacao_lpa"] = (contacao / lpa)
-
-        
-
         
 
         db.empresa_detalhe.insert_one(dados)
