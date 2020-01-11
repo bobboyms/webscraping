@@ -5,6 +5,9 @@ from pymongo import MongoClient
 client = MongoClient('mongodb://bobboyms:cpqd118@ds125381.mlab.com:25381/bolsa?retryWrites=false')
 db = client.bolsa
 
+db.empresa.delete_many({})
+db.empresa_detalhe.delete_many({})
+
 def trata_string(valor):
 
     if valor == None:

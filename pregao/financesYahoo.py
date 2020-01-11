@@ -1,4 +1,5 @@
 import requests
+import re
 from datetime import datetime
 
 def str_to_float(value):
@@ -10,6 +11,8 @@ def str_to_float(value):
 def str_to_int(value):
     if value == None or value == "null":
         return 0
+
+    value = re.sub(r"[^a-z0-9]","",value.lower())
 
     return int(value)
 
@@ -35,8 +38,8 @@ class FinancesYahoo(object):
 
     def __get_params(self, period1, period2):
 
-        p1 = str(datetime.strptime(period1, "%m/%d/%Y").timestamp()).replace(".0","")
-        p2 = str(datetime.strptime(period2, "%m/%d/%Y").timestamp()).replace(".0","")
+        p1 = str(datetime.strptime(period1, "%d/%m/%Y").timestamp()).replace(".0","")
+        p2 = str(datetime.strptime(period2, "%d/%m/%Y").timestamp()).replace(".0","")
 
         return (
                     ('period1', p1),
