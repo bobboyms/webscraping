@@ -14,8 +14,8 @@ def insert_data(lista, codigo):
         dado["codigo"] = codigo
         db.cotacao.insert_one(dado)
 
-    print("Concluido: ", codigo)
-    
+    atualizar_indice_forca_relativa(codigo)
+    print("Concluido: ", codigo) 
 
 if __name__ == "__main__":
     
@@ -47,5 +47,3 @@ if __name__ == "__main__":
 
         if totalConcluido == total:
             break
-
-    print("Extratificação concluida com sucesso")
