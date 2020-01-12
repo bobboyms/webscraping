@@ -1,7 +1,6 @@
 import threading
 import time
 from pymongo import MongoClient
-from financesYahoo import FinancesYahoo
 
 client = MongoClient('mongodb://bobboyms:cpqd118@ds125381.mlab.com:25381/bolsa?retryWrites=false')
 db = client.bolsa
@@ -72,8 +71,9 @@ def atualizar_indice_forca_relativa(codigo):
 
     if (PERIODO_DIAS + i) == total_acoes:
       break
-  
+
 
 if __name__ == "__main__":
 
-    listThread = []
+    t = threading.Thread(target=atualizar_indice_forca_relativa, args=("PETR4",))
+    t.start()
