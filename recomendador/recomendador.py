@@ -12,6 +12,7 @@ data_final = datetime.datetime.strptime("29/12/2019", "%d/%m/%Y")
 results = db.cotacao.find({
         "dateobj":{"$gte":data_inicial, "$lte":data_final},
         "open":{"$gt":0},
+        "indice_forca_relativa":{"$lte":35},
         "volume":{"$gt":15000}
         },        
 {"codigo":1})
