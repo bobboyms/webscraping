@@ -4,15 +4,16 @@ import datetime
 client = MongoClient('mongodb://bobboyms:cpqd118@ds125381.mlab.com:25381/bolsa?retryWrites=false')
 db = client.bolsa
 
-data_inicial = datetime.datetime.strptime("27/12/2019", "%d/%m/%Y")
-data_final = datetime.datetime.strptime("29/12/2019", "%d/%m/%Y")
+data_inicial = datetime.datetime.strptime("27/01/2020", "%d/%m/%Y")
+data_final = datetime.datetime.strptime("29/01/2020", "%d/%m/%Y")
 
 #código da ação
 
 results = db.cotacao.find({
         "dateobj":{"$gte":data_inicial, "$lte":data_final},
         "open":{"$gt":0},
-        "indice_forca_relativa":{"$lte":50},
+        "indice_forca_relativa":{"$lte":35},
+        #"MACD":{"$lt":0},
         "volume":{"$gt":15000}
         },        
 {"codigo":1})

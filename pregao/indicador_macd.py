@@ -2,6 +2,7 @@ from pymongo import MongoClient
 import datetime
 import pandas as pd
 import numpy as np
+import time
 #import matplotlib.pyplot as plt
 
 # pylab.rcParams['figure.figsize'] = (8.0, 8.0)
@@ -65,6 +66,19 @@ def calcula_indice_MACD(acoes):
     calcula_mme(acoes,periodo=12, nome="MME12")
     calcula_mme(acoes,periodo=9, nome="MME9")
     calcula_MACD(acoes)
-    db.
+    
+    time.sleep(1)
+    for acao in acoes:
+      print("foi MACD")
+      db.cotacao.update_one({"_id":acao["_id"]},
+                        {"$set": {
+                            "MACD":acao["MACD"],
+                            "MME26":acao["MME26"],
+                            "MME12":acao["MME12"],
+                            "MME9":acao["MME9"]
+                        }})      
+
+    
+    
 
   
