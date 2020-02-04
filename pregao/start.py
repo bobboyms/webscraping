@@ -33,7 +33,7 @@ if __name__ == "__main__":
         codigo = empresa["empresa"]["codigo"]
 
         empresa = FinancesYahoo(codigo)
-        lista = empresa.get_data('01/01/2015','31/01/2020')
+        lista = empresa.get_data('01/01/2015','03/02/2020')
         
         if len(lista) == 0:
             continue

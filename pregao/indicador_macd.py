@@ -69,7 +69,7 @@ def calcula_indice_MACD(acoes):
     
     time.sleep(1)
     for acao in acoes:
-      print("foi MACD")
+      #print("foi MACD")
       db.cotacao.update_one({"_id":acao["_id"]},
                         {"$set": {
                             "MACD":acao["MACD"],
